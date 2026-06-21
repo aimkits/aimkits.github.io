@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AimKIT</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =========================================
+           1. CSS DEĞİŞKENLERİ (TEMA AYARLARI)
+           ========================================= */
+        :root {
+            --bg-dark: #030305;
+            --bg-lighter: #0a0a0e;
+            --accent: #e0e0e0;
+            --text-main: #f5f5f7;
+            --text-muted: #86868b;
+            --border-color: rgba(255, 255, 255, 0.06);
+            --primary-glow: rgba(255, 255, 255, 0.1);
+        }
+
+        /* =========================================
+           2. SIFIRLAMA VE TEMEL AYARLAR
+           ========================================= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            cursor: none; /* Özel fare imleci için varsayılanı gizledik */
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            overflow-x: hidden;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::selection {
+            background: var(--text-main);
+            color: var(--bg-dark);
+        }
+
+        /* =========================================
+           3. ÖZEL FARE İMLECİ (CUSTOM CURSOR)
+           ========================================= */
+        .cursor-dot {
+            position: fixed;
+            top: 0; 
+            left: 0;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            z-index: 99999;
+            pointer-events: none;
+            width: 8px;
+            height: 8px;
+            background-color: var(--text-main);
+        }
+
+        .cursor-outline {
+            position: fixed;
+            top: 0; 
+            left: 0;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            z-index: 99998;
+            pointer-events: none;
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+        }
+
+        /* =========================================
+           4. HAREKETLİ ARKA PLAN (CANVAS)
+           ========================================= */
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        /* =========================================
+           5. ÜST MENÜ (NAVBAR)
+           ========================================= */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 6vw;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(3, 3, 5, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 1000;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.3s ease;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .brand-logo {
+            height: 48px;
+            filter: invert(1) brightness(1.1);
+            transition: transform 0.3s ease, filter 0.3s ease;
+        }
+
+        .logo-container:hover .brand-logo {
+            transform: scale(1.05);
+            filter: invert(1) brightness(1.3) drop-shadow(0 0 10px var(--primary-glow));
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-main);
+            transform: translateY(-1px);
+        }
+
+        /* =========================================
+           6. SAYFA GEÇİŞ SİSTEMİ (SPA VIEW LOGIC)
+           ========================================= */
+        .view-section {
+            transition: opacity 0.5s ease-in-out;
+            width: 100%;
+        }
+
+        #download-view {
+            display: none;
+            opacity: 0;
+            min-height: 100vh;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-top: 80px;
+        }
+
+        /* =========================================
+           7. ANA EKRAN (HERO SECTION)
+           ========================================= */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 20px;
+            margin-top: 50px;
+        }
+
+        .badge {
+            padding: 6px 16px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 100px;
+            font-size: 12px;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            backdrop-filter: blur(5px);
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 6vw, 5.5rem);
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -2px;
+            margin-bottom: 25px;
+            background: linear-gradient(180deg, #ffffff 0%, #7a7a7a 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: clamp(1.1rem, 2vw, 1.3rem);
+            color: var(--text-muted);
+            max-width: 650px;
+            margin-bottom: 50px;
+            font-weight: 300;
+        }
+
+        .btn-primary {
+            padding: 18px 45px;
+            background: var(--text-main);
+            color: var(--bg-dark);
+            font-size: 16px;
+            font-weight: 700;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            border: none;
+            outline: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            background: #ffffff;
+            box-shadow: 0 15px 35px rgba(255,255,255,0.15);
+        }
+
+        /* =========================================
+           8. VİTRİN / DEMO ALANI
+           ========================================= */
+        .showcase {
+            width: 100%;
+            max-width: 1000px;
+            height: 500px;
+            margin: 0 auto 100px auto;
+            background: var(--bg-lighter);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+        }
+
+        .showcase-ui {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 60%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .minimal-crosshair {
+            width: 40px; 
+            height: 40px;
+            position: relative;
+            animation: pulseAim 4s infinite ease-in-out;
+        }
+
+        .mc-line { 
+            position: absolute; 
+            background: #ffffff; 
+            box-shadow: 0 0 8px rgba(255,255,255,0.5);
+        }
+        
+        .mc-v { width: 2px; height: 12px; left: 19px; }
+        .mc-h { width: 12px; height: 2px; top: 19px; }
+        .mc-top { top: 0; } 
+        .mc-bottom { bottom: 0; }
+        .mc-left { left: 0; } 
+        .mc-right { right: 0; }
+        
+        .mc-dot { 
+            width: 4px; 
+            height: 4px; 
+            background: #ffffff; 
+            border-radius: 50%; 
+            top: 18px; 
+            left: 18px; 
+            position: absolute; 
+            box-shadow: 0 0 10px rgba(255,255,255,0.8);
+        }
+
+        @keyframes pulseAim {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 1; }
+        }
+
+        /* =========================================
+           9. ÖZELLİKLER (FEATURES) ALANI
+           ========================================= */
+        .section-padding { 
+            padding: 120px 6vw; 
+        }
+        
+        .section-header { 
+            text-align: center; 
+            margin-bottom: 80px; 
+        }
+        
+        .section-header h2 { 
+            font-size: 2.8rem; 
+            font-weight: 800; 
+            letter-spacing: -1px; 
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border-color);
+            padding: 50px 40px;
+            border-radius: 16px;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            background: rgba(255,255,255,0.04);
+            transform: translateY(-8px);
+            border-color: rgba(255,255,255,0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .card-icon { 
+            font-size: 28px; 
+            margin-bottom: 25px; 
+            color: var(--text-main); 
+        }
+        
+        .card h3 { 
+            font-size: 1.3rem; 
+            margin-bottom: 15px; 
+            font-weight: 600; 
+        }
+        
+        .card p { 
+            color: var(--text-muted); 
+            font-size: 0.95rem; 
+            line-height: 1.7; 
+        }
+
+        /* =========================================
+           10. S.S.S. (AKORDİYON) ALANI
+           ========================================= */
+        .faq-container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
+        
+        .faq-item { 
+            border-bottom: 1px solid var(--border-color); 
+            padding: 25px 0; 
+        }
+        
+        .faq-question {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            width: 100%; 
+            background: none; 
+            border: none;
+            color: var(--text-main); 
+            font-size: 1.15rem; 
+            font-weight: 600; 
+            text-align: left;
+            outline: none;
+        }
+        
+        .faq-answer { 
+            max-height: 0; 
+            overflow: hidden; 
+            transition: max-height 0.4s ease; 
+            color: var(--text-muted); 
+            padding-top: 0; 
+            line-height: 1.6;
+        }
+        
+        .faq-item.active .faq-answer { 
+            max-height: 200px; 
+            padding-top: 15px; 
+        }
+        
+        .faq-icon { 
+            transition: transform 0.3s ease; 
+            font-size: 1.5rem;
+            font-weight: 300;
+        }
+        
+        .faq-item.active .faq-icon { 
+            transform: rotate(45deg); 
+            color: #fff;
+        }
+
+        /* =========================================
+           11. ALT BİLGİ (FOOTER)
+           ========================================= */
+        footer { 
+            border-top: 1px solid var(--border-color); 
+            padding: 80px 6vw 40px; 
+            margin-top: 60px; 
+            background: var(--bg-lighter);
+        }
+        
+        .footer-content { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            flex-wrap: wrap; 
+            gap: 50px; 
+        }
+        
+        .footer-brand .brand-logo { 
+            height: 36px; 
+            margin-bottom: 25px; 
+        }
+        
+        .footer-brand p { 
+            color: var(--text-muted); 
+            font-size: 0.95rem; 
+            max-width: 320px; 
+            line-height: 1.6;
+        }
+        
+        .footer-links { 
+            display: flex; 
+            gap: 80px; 
+        }
+        
+        .footer-column h4 { 
+            font-size: 0.95rem; 
+            text-transform: uppercase; 
+            letter-spacing: 1.5px; 
+            margin-bottom: 25px; 
+            color: var(--text-main); 
+        }
+        
+        .footer-column a { 
+            display: block; 
+            color: var(--text-muted); 
+            text-decoration: none; 
+            margin-bottom: 15px; 
+            font-size: 0.95rem; 
+            transition: color 0.3s, transform 0.3s; 
+        }
+        
+        .footer-column a:hover { 
+            color: var(--text-main); 
+            transform: translateX(3px);
+        }
+        
+        .footer-bottom { 
+            text-align: center; 
+            padding-top: 40px; 
+            margin-top: 60px; 
+            border-top: 1px solid var(--border-color); 
+            color: var(--text-muted); 
+            font-size: 0.85rem; 
+        }
+
+        /* =========================================
+           12. İNDİRME SAYFASI (GİZLİ BÖLÜM)
+           ========================================= */
+        .download-box {
+            background: rgba(10, 10, 14, 0.7);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 60px 50px;
+            text-align: center;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+            transform: translateY(40px);
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .download-box img { 
+            height: 65px; 
+            filter: invert(1) brightness(1.2); 
+            margin-bottom: 35px; 
+        }
+        
+        .download-box h2 { 
+            font-size: 2rem; 
+            font-weight: 800; 
+            margin-bottom: 15px; 
+            letter-spacing: -0.5px;
+        }
+        
+        .file-info {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin: 30px 0 40px 0;
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+        
+        .file-info span { 
+            color: var(--text-main); 
+            font-weight: 600; 
+        }
+
+        .btn-download {
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 12px;
+            width: 100%; 
+            padding: 20px 0; 
+            background: #ffffff; 
+            color: #000000;
+            font-size: 17px; 
+            font-weight: 800; 
+            text-decoration: none; 
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .btn-download:hover { 
+            transform: translateY(-4px); 
+            background: #e0e0e0; 
+            box-shadow: 0 15px 35px rgba(255,255,255,0.2); 
+        }
+        
+        .security-badge { 
+            margin-top: 30px; 
+            font-size: 0.85rem; 
+            color: var(--text-muted); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 8px; 
+        }
+
+        .back-link {
+            color: var(--text-muted);
+            margin-top: 25px;
+            display: inline-block;
+            font-size: 0.95rem;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .back-link:hover { 
+            color: var(--text-main); 
+            border-bottom: 1px solid var(--text-main);
+        }
+
+        /* =========================================
+           13. MOBİL UYUMLULUK (RESPONSIVE)
+           ========================================= */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hero h1 { font-size: 2.8rem; }
+            .cursor-dot, .cursor-outline { display: none; }
+            body, * { cursor: auto !important; }
+            .showcase { height: 300px; border-radius: 0; border-left: none; border-right: none; }
+            .footer-links { flex-direction: column; gap: 40px; }
+            .section-padding { padding: 80px 6vw; }
+            .grid-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cursor-dot"></div>
+    <div class="cursor-outline"></div>
+
+    <canvas id="particle-canvas"></canvas>
+
+    <nav>
+        <a href="#" class="logo-container" onclick="showHome(event)">
+            <img src="logo.png" alt="AimKIT Logo" class="brand-logo">
+        </a>
+        <div class="nav-links">
+            <a href="#ozellikler" onclick="showHome(event)">Özellikler</a>
+            <a href="#sss" onclick="showHome(event)">S.S.S.</a>
+            <a href="#" onclick="showDownload(event)">İndir</a>
+        </div>
+    </nav>
+
+    <div id="home-view" class="view-section">
+        
+        <section class="hero">
+            <div class="badge">V1.0 Yayında</div>
+            <h1>Saf Performans.<br>Sıfır Gecikme.</h1>
+            <p>Gereksiz detaylardan arındırılmış, sadece kazanmaya odaklı modern nişangah yazılımı. Arka planda hissetmeyeceğin kadar hafif.</p>
+            
+            <button onclick="showDownload(event)" class="btn-primary">
+                AimKIT'i Ücretsiz İndir
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </button>
+        </section>
+
+        <div class="showcase">
+            <div class="showcase-ui">
+                <div class="minimal-crosshair">
+                    <div class="mc-line mc-v mc-top"></div>
+                    <div class="mc-line mc-v mc-bottom"></div>
+                    <div class="mc-line mc-h mc-left"></div>
+                    <div class="mc-line mc-h mc-right"></div>
+                    <div class="mc-dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <section id="ozellikler" class="section-padding">
+            <div class="section-header">
+                <h2>Neden AimKIT?</h2>
+            </div>
+            <div class="grid-container">
+                <div class="card">
+                    <div class="card-icon">⚡</div>
+                    <h3>Kesintisiz Arka Plan</h3>
+                    <p>Uygulamayı kapattığında bile AimKIT arka planda FPS'ini 1 kare bile düşürmeden crosshair'i ekranda tutmaya devam eder.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🎛️</div>
+                    <h3>Gelişmiş Menü</h3>
+                    <p>Karmaşık kodlarla uğraşma. Detaylı ve gelişmiş arayüz üzerinden istediğin ayarı saniyeler içinde bul ve uygula.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🎨</div>
+                    <h3>Detaylı Renk Ayarı</h3>
+                    <p>Sadece kütüphaneden seçmekle kalma, nişangahın rengini, saydamlığını ve boyutunu oyuna en uygun şekilde sen ayarla.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="sss" class="section-padding" style="background: var(--bg-lighter);">
+            <div class="section-header">
+                <h2>Sıkça Sorulan Sorular</h2>
+            </div>
+            <div class="faq-container">
+                <div class="faq-item">
+                    <button class="faq-question">AimKIT FPS düşürür mü? <span class="faq-icon">+</span></button>
+                    <div class="faq-answer">
+                        <p>Kesinlikle hayır. AimKIT, donanım hızlandırma kullanarak çalışır ve oyundaki performansına, ms (gecikme) değerlerine sıfır etki eder.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">Oyunlar ban sebebi sayar mı? <span class="faq-icon">+</span></button>
+                    <div class="faq-answer">
+                        <p>AimKIT oyun dosyalarına veya belleğine müdahale etmez. Sadece ekranınızın ortasına bağımsız bir arayüz çizer. Anti-cheat sistemleri tarafından tespit edilmez.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">Uygulamayı kapatınca crosshair gider mi? <span class="faq-icon">+</span></button>
+                    <div class="faq-answer">
+                        <p>Hayır, uygulamayı ana menüden kapatsanız bile AimKIT arka planda (system tray) sessizce çalışmaya devam eder ve nişangahınız ekranda kalır.</p>
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+
+        <footer>
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="logo.png" alt="AimKIT" class="brand-logo" style="filter: invert(1);">
+                    <p>Rekabetçi oyuncular için özel olarak tasarlandı. Hedefini bul, tetiği çek, gerisini yazılıma bırak.</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4>Ürün</h4> 
+                        <a href="#">Özellikler</a> 
+                        <a href="#">Sürümler</a>
+                        <a href="#">Güncelleme Notları</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4>Destek</h4> 
+                        <a href="#">Discord Topluluğu</a> 
+                        <a href="#">İletişim</a>
+                        <a href="#">Hata Bildir</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 AimKIT. Tüm hakları saklıdır.</p>
+            </div>
+        </footer>
+    </div>
+
+    <div id="download-view" class="view-section">
+        <div class="download-box">
+            <img src="logo.png" alt="AimKIT Logo">
+            <h2>Kuruluma Hazır</h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">AimKIT'in en güncel sürümünü indiriyorsunuz.</p>
+            
+            <div class="file-info">
+                <div>Dosya: <span>AimKIT.rar</span></div>
+                <div>Boyut: <span>~99 MB</span></div>
+            </div>
+
+            <a href="https://www.mediafire.com/file/zksi8pf5y91aave/AimKIT.rar/file" target="_blank" rel="noopener noreferrer" class="btn-download">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                İndir
+            </a>
+
+            <div class="security-badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Güvenli & Doğrulanmış Sunucu
+            </div>
+
+            <a href="#" class="back-link" onclick="showHome(event)">Ana Sayfaya Geri Dön</a>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. SAYFA GEÇİŞ SİSTEMİ (SPA LOGIC) ---
+        const homeView = document.getElementById('home-view');
+        const downloadView = document.getElementById('download-view');
+
+        function showDownload(e) {
+            if(e) e.preventDefault();
+            homeView.style.opacity = '0';
+            
+            setTimeout(() => {
+                homeView.style.display = 'none';
+                downloadView.style.display = 'flex';
+                // Animasyonun tetiklenmesi için küçük bir gecikme (Reflow)
+                void downloadView.offsetWidth;
+                downloadView.style.opacity = '1';
+                window.scrollTo(0, 0);
+            }, 500); // 0.5 saniye kararma efekti
+        }
+
+        function showHome(e) {
+            if(e && e.target.getAttribute('href') === '#') e.preventDefault();
+            downloadView.style.opacity = '0';
+            
+            setTimeout(() => {
+                downloadView.style.display = 'none';
+                homeView.style.display = 'block';
+                // Animasyonun tetiklenmesi için küçük bir gecikme (Reflow)
+                void homeView.offsetWidth;
+                homeView.style.opacity = '1';
+            }, 500);
+        }
+
+        // --- 2. ÖZEL İMLEÇ (CUSTOM CURSOR) KODU ---
+        const cursorDot = document.querySelector('.cursor-dot');
+        const cursorOutline = document.querySelector('.cursor-outline');
+
+        window.addEventListener('mousemove', function (e) {
+            const posX = e.clientX;
+            const posY = e.clientY;
+            
+            cursorDot.style.left = `${posX}px`;
+            cursorDot.style.top = `${posY}px`;
+            
+            // Yuvarlağın imleci gecikmeli takip etmesi efekti
+            cursorOutline.animate({
+                left: `${posX}px`,
+                top: `${posY}px`
+            }, { duration: 500, fill: "forwards" });
+        });
+
+        // Tıklanabilir nesnelerin üzerinde imleci büyütme
+        const links = document.querySelectorAll('a, button');
+        links.forEach(link => {
+            link.addEventListener('mouseenter', () => {
+                cursorOutline.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                cursorOutline.style.backgroundColor = 'rgba(255,255,255,0.08)';
+            });
+            link.addEventListener('mouseleave', () => {
+                cursorOutline.style.transform = 'translate(-50%, -50%) scale(1)';
+                cursorOutline.style.backgroundColor = 'transparent';
+            });
+        });
+
+        // --- 3. S.S.S. AKORDİYON (FAQ) KODU ---
+        const faqItems = document.querySelectorAll('.faq-item');
+        faqItems.forEach(item => {
+            const question = item.querySelector('.faq-question');
+            question.addEventListener('click', () => {
+                // Diğer açık sekmeleri kapat
+                faqItems.forEach(otherItem => {
+                    if (otherItem !== item) {
+                        otherItem.classList.remove('active');
+                    }
+                });
+                // Tıklanan sekmeyi aç veya kapat
+                item.classList.toggle('active');
+            });
+        });
+
+        // --- 4. CANVAS PARÇACIK (PARTICLE) ARKA PLAN KODU ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particlesArray;
+
+        // Ekran boyutunu ayarlama
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            init(); // Boyut değiştiğinde parçacıkları yeniden oluştur
+        });
+
+        // Parçacık Sınıfı
+        class Particle {
+            constructor(x, y, directionX, directionY, size, color) {
+                this.x = x; 
+                this.y = y; 
+                this.directionX = directionX; 
+                this.directionY = directionY; 
+                this.size = size; 
+                this.color = color;
+            }
+            // Parçacığı çizme
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            // Parçacığın hareketini hesaplama
+            update() {
+                if (this.x > canvas.width || this.x < 0) {
+                    this.directionX = -this.directionX;
+                }
+                if (this.y > canvas.height || this.y < 0) {
+                    this.directionY = -this.directionY;
+                }
+                this.x += this.directionX;
+                this.y += this.directionY;
+                this.draw();
+            }
+        }
+
+        // Başlangıç Fonksiyonu
+        function init() {
+            particlesArray = [];
+            // Ekran boyutuna göre parçacık sayısı belirleme
+            let numberOfParticles = (canvas.height * canvas.width) / 14000;
+            
+            for (let i = 0; i < numberOfParticles; i++) {
+                let size = (Math.random() * 2.5) + 0.5;
+                let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+                let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+                let directionX = (Math.random() * 0.4) - 0.2;
+                let directionY = (Math.random() * 0.4) - 0.2;
+                let color = 'rgba(255, 255, 255, 0.15)';
+                
+                particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+            }
+        }
+
+        // Animasyon Döngüsü
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, innerWidth, innerHeight);
+            
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+            }
+        }
+
+        // Sistemi Başlat
+        init();
+        animate();
+    </script>
+</body>
+</html>
